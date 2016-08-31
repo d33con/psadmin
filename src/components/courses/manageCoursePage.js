@@ -3,7 +3,8 @@
 var React = require('react');
 var Router = require('react-router');
 var CourseForm = require('./courseForm');
-var CourseApi = require('../../api/courseApi');
+var CourseActions = require('../../actions/courseActions');
+var CourseStore = require('../../stores/courseStore');
 var toastr = require('toastr');
 
 var ManageCoursePage = React.createClass({
@@ -21,16 +22,16 @@ var ManageCoursePage = React.createClass({
 
   getInitialState: function() {
     return {
-      course: { id: '', title: '', author: '', category: '', length: '' },
+      course: { id: '', title: '', author: { id: '', name: '' }, category: '', length: '' },
       errors: {},
       dirty: false
     };
   },
 
   componentWillMount: function() {
-    var courseId = this.props.params.id; // from the path '/author:id'
+    var courseId = this.props.params.id; // from the path '/course:id'
     if (courseId) {
-      this.setState({ course: CourseApi.getCoursesById(courseId) });
+      this.setState({ course: CourseStore.getCoursesById(courseId) });
     }
   },
 
@@ -69,7 +70,11 @@ var ManageCoursePage = React.createClass({
       return;
     }
 
-    CourseApi.saveCourse(this.state.course);
+    if (this.state.course.id) {
+      CourseActions.updateCourse(this.state.course);
+    } else {
+      CourseActions.createCourse(this.state.course);
+    }
 
     toastr.success('Course saved');
     this.setState({ dirty: false });

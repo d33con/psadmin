@@ -3,21 +3,18 @@
 var React = require('react');
 var Router = require('react-router');
 var Link = Router.Link;
+var CourseActions = require('../../actions/courseActions');
+var toastr = require('toastr');
 
 var CourseList = React.createClass({
   propTypes: {
-    courses: React.PropTypes.array.isRequired
-  },
-
-  editCourse: function(id) {
-    console.log('editing');
+    //courses: React.PropTypes.array.isRequired
   },
 
   deleteCourse: function(id, event) {
-    // event.preventDefault();
-    // AuthorActions.deleteAuthor(id);
-    // toastr.success('Author Deleted');
-    console.log('deleted');
+    event.preventDefault();
+    CourseActions.deleteCourse(id);
+    toastr.success('Course Deleted');
   },
 
   render: function() {
