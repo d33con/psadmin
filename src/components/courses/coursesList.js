@@ -8,7 +8,7 @@ var toastr = require('toastr');
 
 var CourseList = React.createClass({
   propTypes: {
-    //courses: React.PropTypes.array.isRequired
+    courses: React.PropTypes.array.isRequired
   },
 
   deleteCourse: function(id, event) {

@@ -2,13 +2,13 @@
 
 var React = require('react');
 
-var DropInput = React.createClass({
+var Dropdown = React.createClass({
   propTypes: {
     name: React.PropTypes.string.isRequired,
     label: React.PropTypes.string.isRequired,
     onChange: React.PropTypes.func.isRequired,
     placeholder: React.PropTypes.string,
-    value: React.PropTypes.string,
+    options: React.PropTypes.array,
     error: React.PropTypes.string
   },
 
@@ -18,9 +18,9 @@ var DropInput = React.createClass({
       wrapperClass += " " + 'has-error';
     }
 
-    var createCategoryRow = function(category) {
+    var createNameRow = function(name) {
       return (
-        <option>{category}</option>
+        <option key={name.id} value={name.id}>{name.firstName} {name.lastName}</option>
       );
     };
 
@@ -30,8 +30,10 @@ var DropInput = React.createClass({
         <div className="field">
           <select
             name={this.props.name}
+            onChange={this.props.onChange}
+            id="authorSelect"
             className="form-control">
-              {this.props.value.map(createCategoryRow, this)}
+              {this.props.options.map(createNameRow, this)}
           </select>
         <div className="input">{this.props.error}</div>
         </div>
@@ -41,4 +43,4 @@ var DropInput = React.createClass({
 
 });
 
-module.exports = DropInput;
+module.exports = Dropdown;

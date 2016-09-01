@@ -24,7 +24,9 @@ var CoursesPage = React.createClass({
   },
 
   _onChange: function() {
-    this.setState({ courses: CourseStore.getAllCourses() });
+    this.setState({
+      courses: CourseStore.getAllCourses()
+    });
   },
 
   render: function() {

@@ -5,6 +5,8 @@ var Router = require('react-router');
 var CourseForm = require('./courseForm');
 var CourseActions = require('../../actions/courseActions');
 var CourseStore = require('../../stores/courseStore');
+var AuthorActions = require('../../actions/authorActions');
+var AuthorStore = require('../../stores/authorStore');
 var toastr = require('toastr');
 
 var ManageCoursePage = React.createClass({
@@ -22,7 +24,8 @@ var ManageCoursePage = React.createClass({
 
   getInitialState: function() {
     return {
-      course: { id: '', title: '', author: { id: '', name: '' }, category: '', length: '' },
+      course: { id: '', title: '', watchHref: '', author: { id: '', name: '' }, category: '', length: '' },
+      authors: AuthorStore.getAllAuthors(),
       errors: {},
       dirty: false
     };
@@ -30,9 +33,7 @@ var ManageCoursePage = React.createClass({
 
   componentWillMount: function() {
     var courseId = this.props.params.id; // from the path '/course:id'
-    if (courseId) {
-      this.setState({ course: CourseStore.getCoursesById(courseId) });
-    }
+    if (courseId) { this.setState({ course: CourseStore.getCoursesById(courseId) }); }
   },
 
   // call this on every key press -> update the state
@@ -41,6 +42,11 @@ var ManageCoursePage = React.createClass({
     var field = event.target.name;
     var value = event.target.value;
     this.state.course[field] = value;
+    var e = document.getElementById('authorSelect');
+    this.state.course.author = {
+      id: e.options[e.selectedIndex].value,
+      name: e.options[e.selectedIndex].text
+    };
     return this.setState({ course: this.state.course });
   },
 
@@ -55,6 +61,23 @@ var ManageCoursePage = React.createClass({
 
     if (this.state.course.author.length < 3) {
       this.state.errors.author = 'Author must be 3 characters';
+      formIsValid = false;
+    }
+
+    var re = /((https?|ftp):\/\/|www\.)[^\s/$.?#].[^\s]*/g;
+    if (!re.test(this.state.course.watchHref)) {
+      this.state.errors.watchHref = 'Please enter a valid URL';
+      formIsValid = false;
+    }
+
+    if (this.state.course.category.length < 3) {
+      this.state.errors.category = 'Category must be 3 characters';
+      formIsValid = false;
+    }
+
+    var timeRegExp = /(\d+\:)+\d{2}/ig;
+    if (!timeRegExp.test(this.state.course.length)) {
+      this.state.errors.length = 'Please enter length in the form hrs:mins';
       formIsValid = false;
     }
 
@@ -85,6 +108,7 @@ var ManageCoursePage = React.createClass({
     return (
       <CourseForm
         course={this.state.course}
+        authors={this.state.authors}
         onChange={this.setCourseState}
         onSave={this.saveCourse}
         errors={this.state.errors} />

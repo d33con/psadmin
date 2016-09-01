@@ -50436,13 +50436,13 @@ module.exports = ManageAuthorPage;
 
 var React = require('react');
 
-var DropInput = React.createClass({displayName: "DropInput",
+var Dropdown = React.createClass({displayName: "Dropdown",
   propTypes: {
     name: React.PropTypes.string.isRequired,
     label: React.PropTypes.string.isRequired,
     onChange: React.PropTypes.func.isRequired,
     placeholder: React.PropTypes.string,
-    value: React.PropTypes.string,
+    options: React.PropTypes.array,
     error: React.PropTypes.string
   },
 
@@ -50452,9 +50452,9 @@ var DropInput = React.createClass({displayName: "DropInput",
       wrapperClass += " " + 'has-error';
     }
 
-    var createCategoryRow = function(category) {
+    var createNameRow = function(name) {
       return (
-        React.createElement("option", null, category)
+        React.createElement("option", {key: name.id, value: name.id}, name.firstName, " ", name.lastName)
       );
     };
 
@@ -50464,8 +50464,10 @@ var DropInput = React.createClass({displayName: "DropInput",
         React.createElement("div", {className: "field"}, 
           React.createElement("select", {
             name: this.props.name, 
+            onChange: this.props.onChange, 
+            id: "authorSelect", 
             className: "form-control"}, 
-              this.props.value.map(createCategoryRow, this)
+              this.props.options.map(createNameRow, this)
           ), 
         React.createElement("div", {className: "input"}, this.props.error)
         )
@@ -50475,7 +50477,7 @@ var DropInput = React.createClass({displayName: "DropInput",
 
 });
 
-module.exports = DropInput;
+module.exports = Dropdown;
 },{"react":202}],218:[function(require,module,exports){
 "use strict";
 
@@ -50551,11 +50553,12 @@ module.exports = Input;
 
 var React = require('react');
 var Input = require('../common/textInput');
-var DropInput = require('../common/dropInput');
+var Dropdown = require('../common/dropdown');
 
 var CourseForm = React.createClass({displayName: "CourseForm",
 	propTypes: {
 		course:	React.PropTypes.object.isRequired,
+		authors: React.PropTypes.array.isRequired,
 		onSave:	React.PropTypes.func.isRequired,
 		onChange: React.PropTypes.func.isRequired,
 		errors: React.PropTypes.object
@@ -50572,12 +50575,19 @@ var CourseForm = React.createClass({displayName: "CourseForm",
 					onChange: this.props.onChange, 
 					error: this.props.errors.title}), 
 
-				React.createElement(Input, {
+				React.createElement(Dropdown, {
 					name: "author", 
 					label: "Author", 
-					value: this.props.course.author.name, 
+					options: this.props.authors, 
 					onChange: this.props.onChange, 
 					error: this.props.errors.author}), 
+
+				React.createElement(Input, {
+					name: "watchHref", 
+					label: "Link", 
+					value: this.props.course.watchHref, 
+					onChange: this.props.onChange, 
+					error: this.props.errors.watchHref}), 
 
 				React.createElement(Input, {
 					name: "category", 
@@ -50600,7 +50610,7 @@ var CourseForm = React.createClass({displayName: "CourseForm",
 });
 
 module.exports = CourseForm;
-},{"../common/dropInput":217,"../common/textInput":219,"react":202}],221:[function(require,module,exports){
+},{"../common/dropdown":217,"../common/textInput":219,"react":202}],221:[function(require,module,exports){
 "use strict";
 
 var React = require('react');
@@ -50627,7 +50637,9 @@ var CoursesPage = React.createClass({displayName: "CoursesPage",
   },
 
   _onChange: function() {
-    this.setState({ courses: CourseStore.getAllCourses() });
+    this.setState({
+      courses: CourseStore.getAllCourses()
+    });
   },
 
   render: function() {
@@ -50654,7 +50666,7 @@ var toastr = require('toastr');
 
 var CourseList = React.createClass({displayName: "CourseList",
   propTypes: {
-    //courses: React.PropTypes.array.isRequired
+    courses: React.PropTypes.array.isRequired
   },
 
   deleteCourse: function(id, event) {
@@ -50706,6 +50718,8 @@ var Router = require('react-router');
 var CourseForm = require('./courseForm');
 var CourseActions = require('../../actions/courseActions');
 var CourseStore = require('../../stores/courseStore');
+var AuthorActions = require('../../actions/authorActions');
+var AuthorStore = require('../../stores/authorStore');
 var toastr = require('toastr');
 
 var ManageCoursePage = React.createClass({displayName: "ManageCoursePage",
@@ -50723,7 +50737,8 @@ var ManageCoursePage = React.createClass({displayName: "ManageCoursePage",
 
   getInitialState: function() {
     return {
-      course: { id: '', title: '', author: { id: '', name: '' }, category: '', length: '' },
+      course: { id: '', title: '', watchHref: '', author: { id: '', name: '' }, category: '', length: '' },
+      authors: AuthorStore.getAllAuthors(),
       errors: {},
       dirty: false
     };
@@ -50731,9 +50746,7 @@ var ManageCoursePage = React.createClass({displayName: "ManageCoursePage",
 
   componentWillMount: function() {
     var courseId = this.props.params.id; // from the path '/course:id'
-    if (courseId) {
-      this.setState({ course: CourseStore.getCoursesById(courseId) });
-    }
+    if (courseId) { this.setState({ course: CourseStore.getCoursesById(courseId) }); }
   },
 
   // call this on every key press -> update the state
@@ -50742,6 +50755,11 @@ var ManageCoursePage = React.createClass({displayName: "ManageCoursePage",
     var field = event.target.name;
     var value = event.target.value;
     this.state.course[field] = value;
+    var e = document.getElementById('authorSelect');
+    this.state.course.author = {
+      id: e.options[e.selectedIndex].value,
+      name: e.options[e.selectedIndex].text
+    };
     return this.setState({ course: this.state.course });
   },
 
@@ -50756,6 +50774,23 @@ var ManageCoursePage = React.createClass({displayName: "ManageCoursePage",
 
     if (this.state.course.author.length < 3) {
       this.state.errors.author = 'Author must be 3 characters';
+      formIsValid = false;
+    }
+
+    var re = /((https?|ftp):\/\/|www\.)[^\s/$.?#].[^\s]*/g;
+    if (!re.test(this.state.course.watchHref)) {
+      this.state.errors.watchHref = 'Please enter a valid URL';
+      formIsValid = false;
+    }
+
+    if (this.state.course.category.length < 3) {
+      this.state.errors.category = 'Category must be 3 characters';
+      formIsValid = false;
+    }
+
+    var timeRegExp = /(\d+\:)+\d{2}/ig;
+    if (!timeRegExp.test(this.state.course.length)) {
+      this.state.errors.length = 'Please enter length in the form hrs:mins';
       formIsValid = false;
     }
 
@@ -50786,6 +50821,7 @@ var ManageCoursePage = React.createClass({displayName: "ManageCoursePage",
     return (
       React.createElement(CourseForm, {
         course: this.state.course, 
+        authors: this.state.authors, 
         onChange: this.setCourseState, 
         onSave: this.saveCourse, 
         errors: this.state.errors})
@@ -50794,7 +50830,7 @@ var ManageCoursePage = React.createClass({displayName: "ManageCoursePage",
 });
 
 module.exports = ManageCoursePage;
-},{"../../actions/courseActions":205,"../../stores/courseStore":231,"./courseForm":220,"react":202,"react-router":33,"toastr":203}],224:[function(require,module,exports){
+},{"../../actions/authorActions":204,"../../actions/courseActions":205,"../../stores/authorStore":230,"../../stores/courseStore":231,"./courseForm":220,"react":202,"react-router":33,"toastr":203}],224:[function(require,module,exports){
 "use strict";
 
 var React = require('react');
